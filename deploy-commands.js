@@ -63,7 +63,7 @@ const commands = [
   },
   {
     name: 'bypass',
-    description: 'Bypass URL restrictions using TRW API',
+    description: 'Bypass URL restrictions using multiple APIs',
     options: [
       {
         name: 'url',
@@ -81,7 +81,7 @@ async function registerCommands() {
         
         const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
         
-        await rest.put(
+        const data = await rest.put(
             Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.GUILD_ID),
             { body: commands },
         );
@@ -93,8 +93,10 @@ async function registerCommands() {
         console.log('   /analyzeksign - Analyze ksign files');
         console.log('   /bypass - Bypass URL restrictions');
         
+        return data;
     } catch (error) {
         console.error('❌ Error registering commands:', error);
+        throw error;
     }
 }
 
