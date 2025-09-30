@@ -6,22 +6,20 @@ console.log('📡 Starting keep-alive server...');
 require('./keep-alive');
 
 // Auto-register commands then start bot
-const registerCommands = async () => {
+const initializeBot = async () => {
     try {
         console.log('📝 Attempting to register Discord commands...');
-        require('./deploy-commands');
+        const registerCommands = require('./deploy-commands');
+        await registerCommands();
         
-        // Wait a bit for command registration
-        setTimeout(() => {
-            console.log('🤖 Starting Discord bot...');
-            require('./src/bot');
-        }, 3000);
-        
+        console.log('✅ Command registration completed');
     } catch (error) {
         console.log('⚠️ Command registration failed, starting bot anyway...');
-        console.log('🤖 Starting Discord bot...');
-        require('./src/bot');
     }
+    
+    // Start the bot regardless of command registration
+    console.log('🤖 Starting Discord bot...');
+    require('./src/bot');
 };
 
-registerCommands();
+initializeBot();
