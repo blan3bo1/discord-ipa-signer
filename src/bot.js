@@ -49,6 +49,21 @@ for (const file of eventFiles) {
 const cleanupService = require('./utils/fileCleanup');
 cleanupService.startCleanup();
 
+// Auto-register commands when bot starts
+client.once('ready', async () => {
+    console.log(`✅ Logged in as ${client.user.tag}`);
+    console.log(`🏠 Serving ${client.guilds.cache.size} servers`);
+    
+    // Try to register commands on startup
+    try {
+        console.log('🔄 Checking command registration...');
+        const registerCommands = require('../deploy-commands');
+        await registerCommands();
+    } catch (error) {
+        console.log('⚠️ Command registration check failed, but bot is running');
+    }
+});
+
 client.login(process.env.DISCORD_TOKEN);
 
 // Error handling
