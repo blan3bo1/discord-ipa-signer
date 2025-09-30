@@ -86,4 +86,53 @@ class SigningService {
             const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
             const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
 
-            if (!certBags[forge.p
+            if (!certBags[forge.pki.oids.certBag] || !keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]) {
+                throw new Error('Invalid P12 file or incorrect password');
+            }
+
+            const certificate = certBags[forge.pki.oids.certBag][0].cert;
+            const privateKey = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag][0].key;
+
+            // Simplified signing process
+            await this.simpleSign(appPath, certificate, privateKey);
+
+        } catch (error) {
+            if (error.message.includes('Invalid password') || error.message.includes('PKCS12')) {
+                throw new Error('Invalid P12 password or corrupted certificate');
+            }
+            throw error;
+        }
+    }
+
+    async simpleSign(appPath, certificate, privateKey) {
+        // Placeholder for actual signing logic
+        const executablePath = path.join(appPath, await this.getExecutableName(appPath));
+        if (await fs.pathExists(executablePath)) {
+            await fs.chmod(executablePath, 0o755);
+        }
+
+        console.log('App prepared for signing - integrate with proper codesign tool for production use');
+    }
+
+    async getExecutableName(appPath) {
+        const infoPlistPath = path.join(appPath, 'Info.plist');
+        const infoPlist = plist.parse(await fs.readFile(infoPlistPath, 'utf8'));
+        return infoPlist.CFBundleExecutable;
+    }
+
+    async createIpa(sourceDir, outputPath) {
+        return new Promise((resolve, reject) => {
+            const output = fs.createWriteStream(outputPath);
+            const archive = archiver('zip', { zlib: { level: 9 } });
+
+            output.on('close', resolve);
+            archive.on('error', reject);
+
+            archive.pipe(output);
+            archive.directory(sourceDir, false);
+            archive.finalize();
+        });
+    }
+}
+
+module.exports = new SigningService();
