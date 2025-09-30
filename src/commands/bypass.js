@@ -5,10 +5,10 @@ const { URL } = require('url');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('bypass')
-        .setDescription('Bypass URL restrictions using multiple APIs')
+        .setDescription('Bypass Linkvertise, Rekonise, Work.ink & Link-Unlock URLs')
         .addStringOption(option =>
             option.setName('url')
-                .setDescription('The URL to bypass (include http:// or https://)')
+                .setDescription('URL from Linkvertise, Rekonise, Work.ink or Link-Unlock')
                 .setRequired(true)),
 
     async execute(interaction) {
@@ -26,8 +26,7 @@ module.exports = {
 
             await interaction.editReply({ content: '🔄 Bypassing URL...' });
 
-            // Try multiple bypass APIs in sequence
-            const result = await this.tryAllBypassApis(urlToBypass);
+            const result = await this.bypassWithTRW(urlToBypass);
 
             if (result.success) {
                 const embed = new EmbedBuilder()
@@ -36,10 +35,10 @@ module.exports = {
                     .addFields(
                         { name: '📥 Original URL', value: `\`\`\`${urlToBypass}\`\`\``, inline: false },
                         { name: '📤 Bypassed URL', value: `\`\`\`${result.url}\`\`\``, inline: false },
-                        { name: '🔧 API Used', value: result.api, inline: true }
+                        { name: '🔧 Service', value: 'TRW Bypass API', inline: true }
                     )
                     .setTimestamp()
-                    .setFooter({ text: 'Multi-API Bypass Service' });
+                    .setFooter({ text: 'Supports: Linkvertise, Rekonise, Work.ink, Link-Unlock' });
 
                 // Create button to open the URL
                 const row = new ActionRowBuilder()
@@ -49,9 +48,9 @@ module.exports = {
                             .setStyle(ButtonStyle.Link)
                             .setURL(result.url),
                         new ButtonBuilder()
-                            .setLabel('Test URL')
+                            .setLabel('Copy URL')
                             .setStyle(ButtonStyle.Secondary)
-                            .setCustomId('test_url')
+                            .setCustomId('copy_url')
                     );
 
                 const reply = await interaction.editReply({ 
@@ -60,13 +59,13 @@ module.exports = {
                     components: [row]
                 });
 
-                // Add button interaction
+                // Add button interaction for copy
                 const collector = reply.createMessageComponentCollector({ time: 30000 });
 
                 collector.on('collect', async (i) => {
-                    if (i.customId === 'test_url') {
+                    if (i.customId === 'copy_url') {
                         await i.reply({ 
-                            content: `🔗 Testing URL: ${result.url}`,
+                            content: `📋 URL copied to clipboard:\n\`\`\`${result.url}\`\`\``,
                             ephemeral: true 
                         });
                     }
@@ -79,7 +78,7 @@ module.exports = {
                     .addFields(
                         { name: '📥 Original URL', value: `\`\`\`${urlToBypass}\`\`\``, inline: false },
                         { name: '💡 Error', value: result.error, inline: false },
-                        { name: '🔧 APIs Tried', value: result.apisTried.join(', '), inline: false }
+                        { name: '📋 Supported Services', value: 'Linkvertise, Rekonise, Work.ink, Link-Unlock', inline: false }
                     )
                     .setTimestamp();
 
@@ -92,15 +91,8 @@ module.exports = {
         } catch (error) {
             console.error('Bypass error:', error);
             
-            const errorEmbed = new EmbedBuilder()
-                .setColor(0xff0000)
-                .setTitle('❌ Bypass Error')
-                .setDescription(`An unexpected error occurred: ${error.message}`)
-                .setTimestamp();
-
-            await interaction.editReply({ 
-                content: null,
-                embeds: [errorEmbed]
+            await interaction.editReply({
+                content: `❌ Error: ${error.message}`
             });
         }
     },
@@ -114,62 +106,10 @@ module.exports = {
         }
     },
 
-    async tryAllBypassApis(url) {
-        const apis = [
-            {
-                name: 'TRW API',
-                url: `https://trw.lat/api/free/bypass?url=${encodeURIComponent(url)}`,
-                parser: (data) => data.destination || data.url
-            },
-            {
-                name: 'ByPass.PM',
-                url: `https://bypass.pm/bypass?url=${encodeURIComponent(url)}`,
-                parser: (data) => data.destination || data.url
-            },
-            {
-                name: 'LinkBypass',
-                url: `https://linkbypass.com/api/bypass?url=${encodeURIComponent(url)}`,
-                parser: (data) => data.destination || data.url
-            },
-            {
-                name: 'Bypass API 2',
-                url: `https://api.bypass.vip/bypass?url=${encodeURIComponent(url)}`,
-                parser: (data) => data.destination || data.url
-            }
-        ];
-
-        const apisTried = [];
-
-        for (const api of apis) {
-            try {
-                apisTried.push(api.name);
-                console.log(`Trying ${api.name}...`);
-                
-                const result = await this.callBypassApi(api.url, api.parser);
-                
-                if (result.success) {
-                    return {
-                        success: true,
-                        url: result.url,
-                        api: api.name,
-                        apisTried
-                    };
-                }
-            } catch (error) {
-                console.log(`${api.name} failed:`, error.message);
-                continue;
-            }
-        }
-
-        return {
-            success: false,
-            error: 'All bypass APIs failed. The URL may not be supported or services are down.',
-            apisTried
-        };
-    },
-
-    callBypassApi(apiUrl, parser) {
+    bypassWithTRW(url) {
         return new Promise((resolve) => {
+            const apiUrl = `https://trw.lat/api/free/bypass?url=${encodeURIComponent(url)}`;
+            
             const request = https.get(apiUrl, (response) => {
                 let data = '';
 
@@ -179,25 +119,31 @@ module.exports = {
 
                 response.on('end', () => {
                     try {
-                        if (response.statusCode === 200) {
-                            const result = JSON.parse(data);
-                            const bypassedUrl = parser(result);
-                            
-                            if (bypassedUrl && this.isValidUrl(bypassedUrl)) {
-                                resolve({ success: true, url: bypassedUrl });
-                            } else {
-                                resolve({ success: false, error: 'Invalid URL returned' });
-                            }
-                        } else {
+                        const result = JSON.parse(data);
+                        
+                        if (result.success === true && result.result) {
+                            // Success case - we got a bypassed URL
+                            resolve({ 
+                                success: true, 
+                                url: result.result
+                            });
+                        } else if (result.success === false) {
+                            // TRW API returned an error
                             resolve({ 
                                 success: false, 
-                                error: `API returned status: ${response.statusCode}` 
+                                error: result.result || 'TRW API returned an error'
+                            });
+                        } else {
+                            // Unexpected response format
+                            resolve({ 
+                                success: false, 
+                                error: 'Unexpected response from TRW API'
                             });
                         }
                     } catch (parseError) {
                         resolve({ 
                             success: false, 
-                            error: 'Failed to parse API response' 
+                            error: 'Failed to parse TRW API response'
                         });
                     }
                 });
@@ -206,40 +152,17 @@ module.exports = {
             request.on('error', (error) => {
                 resolve({ 
                     success: false, 
-                    error: `Network error: ${error.message}` 
+                    error: `Network error: ${error.message}`
                 });
             });
 
-            // Set timeout (8 seconds)
-            request.setTimeout(8000, () => {
+            // Set timeout (15 seconds)
+            request.setTimeout(15000, () => {
                 request.destroy();
                 resolve({ 
                     success: false, 
-                    error: 'Request timeout' 
+                    error: 'TRW API request timeout'
                 });
-            });
-        });
-    },
-
-    // Alternative method for simple URL redirects
-    async bypassWithRedirect(url) {
-        return new Promise((resolve) => {
-            const request = https.get(url, (response) => {
-                // Check for redirect
-                if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-                    resolve({ success: true, url: response.headers.location });
-                } else {
-                    resolve({ success: false, error: 'No redirect found' });
-                }
-            });
-
-            request.on('error', () => {
-                resolve({ success: false, error: 'Request failed' });
-            });
-
-            request.setTimeout(5000, () => {
-                request.destroy();
-                resolve({ success: false, error: 'Timeout' });
             });
         });
     }
