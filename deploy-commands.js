@@ -60,6 +60,18 @@ const commands = [
         required: true
       }
     ]
+  },
+  {
+    name: 'bypass',
+    description: 'Bypass URL restrictions using TRW API',
+    options: [
+      {
+        name: 'url',
+        type: 3,
+        description: 'The URL to bypass (include http:// or https://)',
+        required: true
+      }
+    ]
   }
 ];
 
@@ -74,10 +86,15 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
       { body: commands },
     );
 
-    console.log('Commands registered successfully!');
+    console.log('✅ Commands registered successfully!');
+    console.log('📋 Available commands:');
+    console.log('   /sign - Sign IPA files');
+    console.log('   /certcheck - Check certificate status');
+    console.log('   /analyzeksign - Analyze ksign files');
+    console.log('   /bypass - Bypass URL restrictions');
     process.exit(0);
   } catch (error) {
-    console.error('Error registering commands:', error);
+    console.error('❌ Error registering commands:', error);
     process.exit(1);
   }
 })();
