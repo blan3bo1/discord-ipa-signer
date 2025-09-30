@@ -75,26 +75,32 @@ const commands = [
   }
 ];
 
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+async function registerCommands() {
+    try {
+        console.log('📝 Registering Discord commands...');
+        
+        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+        
+        await rest.put(
+            Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.GUILD_ID),
+            { body: commands },
+        );
 
-(async () => {
-  try {
-    console.log('Registering commands...');
-    
-    await rest.put(
-      Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.GUILD_ID),
-      { body: commands },
-    );
+        console.log('✅ Commands registered successfully!');
+        console.log('📋 Available commands:');
+        console.log('   /sign - Sign IPA files');
+        console.log('   /certcheck - Check certificate status');
+        console.log('   /analyzeksign - Analyze ksign files');
+        console.log('   /bypass - Bypass URL restrictions');
+        
+    } catch (error) {
+        console.error('❌ Error registering commands:', error);
+    }
+}
 
-    console.log('✅ Commands registered successfully!');
-    console.log('📋 Available commands:');
-    console.log('   /sign - Sign IPA files');
-    console.log('   /certcheck - Check certificate status');
-    console.log('   /analyzeksign - Analyze ksign files');
-    console.log('   /bypass - Bypass URL restrictions');
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Error registering commands:', error);
-    process.exit(1);
-  }
-})();
+// Auto-run if this file is executed directly
+if (require.main === module) {
+    registerCommands();
+}
+
+module.exports = registerCommands;
