@@ -5,21 +5,13 @@ console.log('🚀 Starting IPA Signer Bot with Keep-Alive...');
 console.log('📡 Starting keep-alive server...');
 require('./keep-alive');
 
-// Auto-register commands then start bot
-const initializeBot = async () => {
-    try {
-        console.log('📝 Attempting to register Discord commands...');
-        const registerCommands = require('./deploy-commands');
-        await registerCommands();
-        
-        console.log('✅ Command registration completed');
-    } catch (error) {
-        console.log('⚠️ Command registration failed, starting bot anyway...');
-    }
+// Simple command registration and bot start
+setTimeout(() => {
+    console.log('📝 Registering Discord commands...');
+    require('./deploy-commands');
     
-    // Start the bot regardless of command registration
-    console.log('🤖 Starting Discord bot...');
-    require('./src/bot');
-};
-
-initializeBot();
+    setTimeout(() => {
+        console.log('🤖 Starting Discord bot...');
+        require('./src/bot');
+    }, 3000);
+}, 1000);
