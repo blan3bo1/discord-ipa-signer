@@ -19,8 +19,6 @@ if (fs.existsSync(envPath)) {
 }
 
 const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 
 const client = new Client({
     intents: [
