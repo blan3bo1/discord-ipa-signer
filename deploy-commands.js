@@ -1,4 +1,43 @@
+// deploy-commands.js - WITH MANUAL .env LOADING
+const fs = require('fs');
+const path = require('path');
 const { REST, Routes } = require('discord.js');
+
+// MANUALLY LOAD .env FILE
+console.log('🔧 Loading .env file manually...');
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+    console.log('✅ .env file found at:', envPath);
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const lines = envContent.split('\n');
+    
+    for (const line of lines) {
+        const trimmed = line.trim();
+        // Skip empty lines and comments
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        
+        const equalsIndex = trimmed.indexOf('=');
+        if (equalsIndex === -1) continue;
+        
+        const key = trimmed.substring(0, equalsIndex).trim();
+        const value = trimmed.substring(equalsIndex + 1).trim();
+        
+        if (key && value) {
+            process.env[key] = value;
+            console.log(`   Loaded: ${key}`);
+        }
+    }
+    console.log('✅ .env file loaded successfully');
+} else {
+    console.log('❌ .env file NOT found at:', envPath);
+    console.log('Current directory files:');
+    try {
+        const files = fs.readdirSync(__dirname);
+        console.log(files);
+    } catch (e) {
+        console.log('Cannot read directory');
+    }
+}
 
 const commands = [
   {
@@ -64,14 +103,19 @@ const commands = [
 ];
 
 // Debug: Check if environment variables are loaded
-console.log('🔧 DEBUG: Checking environment variables...');
+console.log('\n🔧 DEBUG: Checking environment variables...');
 console.log('DISCORD_TOKEN:', process.env.DISCORD_TOKEN ? 'LOADED' : 'MISSING');
 console.log('DISCORD_CLIENT_ID:', process.env.DISCORD_CLIENT_ID ? 'LOADED' : 'MISSING');
 console.log('GUILD_ID:', process.env.GUILD_ID ? 'LOADED' : 'MISSING');
 
 if (!process.env.DISCORD_TOKEN) {
-    console.log('❌ ERROR: DISCORD_TOKEN is not set in environment variables!');
-    console.log('Make sure your .env file exists and contains DISCORD_TOKEN=your_bot_token');
+    console.log('\n❌ ERROR: DISCORD_TOKEN is still not set!');
+    console.log('Available environment variables:');
+    Object.keys(process.env).forEach(key => {
+        if (key.includes('DISCORD') || key.includes('GUILD')) {
+            console.log(`   ${key}: ${process.env[key] ? 'SET' : 'NOT SET'}`);
+        }
+    });
     process.exit(1);
 }
 
@@ -79,7 +123,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 async function registerCommands() {
     try {
-        console.log('📝 Registering Discord commands...');
+        console.log('\n📝 Registering Discord commands...');
         
         const data = await rest.put(
             Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.GUILD_ID),
