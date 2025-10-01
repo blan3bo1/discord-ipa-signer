@@ -60,26 +60,26 @@ const commands = [
         required: true
       }
     ]
-  },
-  {
-    name: 'bypass',
-    description: 'Bypass URL restrictions using multiple APIs',
-    options: [
-      {
-        name: 'url',
-        type: 3,
-        description: 'The URL to bypass (include http:// or https://)',
-        required: true
-      }
-    ]
   }
 ];
+
+// Debug: Check if environment variables are loaded
+console.log('🔧 DEBUG: Checking environment variables...');
+console.log('DISCORD_TOKEN:', process.env.DISCORD_TOKEN ? 'LOADED' : 'MISSING');
+console.log('DISCORD_CLIENT_ID:', process.env.DISCORD_CLIENT_ID ? 'LOADED' : 'MISSING');
+console.log('GUILD_ID:', process.env.GUILD_ID ? 'LOADED' : 'MISSING');
+
+if (!process.env.DISCORD_TOKEN) {
+    console.log('❌ ERROR: DISCORD_TOKEN is not set in environment variables!');
+    console.log('Make sure your .env file exists and contains DISCORD_TOKEN=your_bot_token');
+    process.exit(1);
+}
+
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 async function registerCommands() {
     try {
         console.log('📝 Registering Discord commands...');
-        
-        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
         
         const data = await rest.put(
             Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.GUILD_ID),
@@ -91,7 +91,6 @@ async function registerCommands() {
         console.log('   /sign - Sign IPA files');
         console.log('   /certcheck - Check certificate status');
         console.log('   /analyzeksign - Analyze ksign files');
-        console.log('   /bypass - Bypass URL restrictions');
         
         return data;
     } catch (error) {
